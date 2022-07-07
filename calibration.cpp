@@ -2,11 +2,12 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <stdio.h>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <execution>
 #include <thread>
+#include <unistd.h>
+
 // Defining the dimensions of checkerboard
 int CHECKERBOARD[2]{6, 9};
 std::shared_ptr<cv::VideoCapture> capture;
