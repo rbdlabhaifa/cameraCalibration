@@ -35,7 +35,7 @@ int main() {
             objp.push_back(cv::Point3f(j*6, i*6, 0));
     }
 
-    std::string settingPath = "/../config.json";
+    std::string settingPath = "../config.json";
     std::ifstream programData(settingPath);
     nlohmann::json data;
     programData >> data;
@@ -43,7 +43,7 @@ int main() {
     sleep(10);
     ctello::Tello tello;
     tello.SendCommandWithResponse("streamon");
-    std::string videoPath = data["onlineVideoPath"];
+    std::string videoPath = data["cameraTelloString"];
     std::thread t = std::thread(videoDroneThread,std::ref(videoPath));
     sleep(5);
 

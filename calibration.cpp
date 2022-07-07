@@ -6,10 +6,20 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <execution>
-
+#include <thread>
 // Defining the dimensions of checkerboard
 int CHECKERBOARD[2]{6, 9};
-
+std::shared_ptr<cv::VideoCapture> capture;
+std::shared_ptr<cv::Mat> frame;
+std::shared_ptr<bool> stop;
+void videoDroneThread(){
+    stop = std::make_shared<bool>(false);
+    frame = std::make_shared<cv::Mat>();
+    while(!*stop){
+        capture->read(*frame);
+    }
+    capture->release();
+}
 int main() {
     // Creating vector to store vectors of 3D points for each checkerboard image
     std::vector<std::vector<cv::Point3f> > objpoints;
@@ -24,36 +34,34 @@ int main() {
             objp.push_back(cv::Point3f(j * 6, i * 6, 0));
     }
 
-    std::string settingPath = "/../config.json";
+    std::string settingPath = "../config.json";
     std::ifstream programData(settingPath);
     nlohmann::json data;
     programData >> data;
     programData.close();
-    cv::VideoCapture capture;
-    bool isCameraString = data["isCameraString"];
-    if (isCameraString) {
-        std::string cameraString = data["cameraString"];
-        capture.open(cameraString);
-    } else {
+    capture = std::make_shared<cv::VideoCapture>();
         int cameraPort = data["cameraPort"];
-        capture.open(cameraPort);
-    }
-    cv::Mat frame, gray;
+        capture->open(cameraPort);
+    std::thread t = std::thread(videoDroneThread);
+    sleep(2);
+    cv::Mat  gray;
     // vector to store the pixel coordinates of detected checker board corners
     std::vector<cv::Point2f> corner_pts;
-    bool success;
-    capture >> frame;
+    bool success = false;
     int waitKey = 0;
-    std::cout << "frame size" << frame.size << std::endl;
+    std::cout << "frame size" << frame->size << std::endl;
     // Looping over all the images in the directory
     for (int i{0}; i < 100; i++) {
-        capture >> frame;
-        if (frame.empty()) {
+        if (success){
+            sleep(1);
+        }
+        cv::Mat frameCopy = *frame;
+        if (frameCopy.empty()){
             i--;
             continue;
         }
         //cv::resize(frame, frame, cv::Size(640, 480));
-        cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(frameCopy, gray, cv::COLOR_BGR2GRAY);
         // Finding checker board corners
         // If desired number of corners are found in the image then success = true
         success = cv::findChessboardCorners(gray, cv::Size(CHECKERBOARD[0], CHECKERBOARD[1]), corner_pts,
@@ -67,29 +75,17 @@ int main() {
             cv::cornerSubPix(gray, corner_pts, cv::Size(11, 11), cv::Size(-1, -1), criteria);
 
             // Displaying the detected corner points on the checker board
-            cv::drawChessboardCorners(frame, cv::Size(CHECKERBOARD[0], CHECKERBOARD[1]), corner_pts, success);
+            cv::drawChessboardCorners(frameCopy, cv::Size(CHECKERBOARD[0], CHECKERBOARD[1]), corner_pts, success);
 
             objpoints.push_back(objp);
             imgpoints.push_back(corner_pts);
-            cv::Mat junk;
-            for (int j = 0; j < 50; ++j) {
-                capture >> junk;
-                usleep(40000);
-            }
-            waitKey = 1;
         } else {
             i--;
-            waitKey = 1;
-            for (int j = 0; j < 3; ++j) {
-                capture >> frame;
-                usleep(40000);
-            }
         }
-
-        cv::imshow("Image", frame);
-        cv::waitKey(waitKey);
+        cv::imshow("Image", frameCopy);
+        cv::waitKey(1);
     }
-    capture.release();
+    *stop = true;
     cv::destroyAllWindows();
 
     cv::Mat cameraMatrix, distCoeffs, R, T;
