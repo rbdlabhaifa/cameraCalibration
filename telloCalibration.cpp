@@ -40,7 +40,11 @@ int main() {
     nlohmann::json data;
     programData >> data;
     programData.close();
-    sleep(10);
+    std::string droneName = data["DroneName"];
+    std::string commandString = "nmcli c up " + droneName;
+    const char *command = commandString.c_str();
+    system(command);
+    sleep(5);
     ctello::Tello tello;
     tello.SendCommandWithResponse("streamon");
     std::string videoPath = data["cameraTelloString"];

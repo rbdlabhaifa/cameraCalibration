@@ -39,6 +39,7 @@ int main() {
     nlohmann::json data;
     programData >> data;
     programData.close();
+
     capture = std::make_shared<cv::VideoCapture>();
         int cameraPort = data["cameraPort"];
         capture->open(cameraPort);
